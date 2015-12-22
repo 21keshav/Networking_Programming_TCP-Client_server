@@ -1,0 +1,157 @@
+USER DOCUMENTATION
+-----------------
+ My assignment contains Four programs tcpechotimecli.c tcpechotimesrv.c echo_cli.c
+time_cli.c and two files a Makefile and a Readme  which should be in one directory so as to run the programs.
+ -To run my programs you need first run make. 
+  Objectfiles and executables of all the programs will be created which are present in the Makefile.
+ -First you need to run the server.for this  you just need to run the executable server in Xterm/bash.
+ -To run the client  you need to run the executable  client along with the ip address or domain name 
+  in the Xterm/bash.
+  client <IP address> or client <local host> 
+ -Client program gives you three service options  choose between 3 numbers(1-3) 1-Echo 2-Time 3-Quit.
+ -Accordindly  xterm window will appear if Time or Echo service will be chosen.
+ -To terminate the  time or echo client service(in Xterm Window) 
+  you need press Ctrl C-(time service),Ctrl C/D (echo service).
+ -After running  the executables  run make clean 
+  -this wil clean Objectfiles and executables of all the programs will be created.
+
+ EXAMPLES TO RUN THE PROGRAM
+ ---------------------------
+
+ --->To run the Server:
+ 
+ -open one xterm/or bash window on the compserv.
+  
+ bash-4.3$ make 
+ bash-4.3$ server
+ 
+ server program will execute.
+ 
+ ---> To run the Client:
+ 
+ -open a new  xterm/or bash window on the compserv
+  
+ bash-4.3$ client 127.0.0.1
+ or
+ bash-4.3$ client localhost
+ 
+ client  program will execute.
+  
+ To Select Service Choose Values
+ 1-Time
+ 2-Echo
+ 3-Quit
+ choice:
+ then you can choose to numbers (1-3)according to service you want to run. 
+ press Ctrl C (time service),Ctrl C/D (echo service) to terminate the services.
+  
+ -clean up the executables
+ bash-4.3$ make clean
+ 
+ 
+  SYSTEM DOCUMENTATION
+  --------------------
+  
+ ->CLIENT
+ - COMMAND LINE ARGUMENTS PROCESSSING:Implemented.
+   When a IP address in dotted decimal notation, or the server domain name is passed.
+   My programs able to handle either mode and figure out which of the two is being passed to it    
+   I have used  gethostbyaddr and  gethostbyaddr functions for the  handle cooman line processing.
+ - THE CHILD PARENT:Implemented
+   Depending upon the service chosen time or echo .
+   My program uses  fork() to create a child and parent for the service.
+   My child  communicates sucessfully with parent through pipe.
+   My parent exits the  inner loop  when the SIGCHLD signal is generated when the child terminates.
+   Then the outer loop is repeated, querying the user again for the (next) service s/he desires
+ - THE CLIENT CHILD:Implemented
+   Depending upon the service chosen time or echo .
+   My child execs an xterm spwans the service time or client in a seprate window through which all interactions
+   With the server and the user take place.
+ - SERVICE REQUEST TERMINATION AND PROGRAM ROBUSTNESS:Implemented
+   When I press Ctrl C  time service is terminated.
+   When I press  Ctrl C/D echo service is terminated.
+   When the the server crashes the child of the service being implemented, communicates through 
+   the pipe displaying proper messages that server has been terminated.Child also Terminates.
+   but still the program can be more robust to handle this. 
+ - IPC USING A PIPE   
+   My child  communicates sucessfully with parent through pipe all the status messages.
+ - MORE ROBUSTNESS -Partial Implementation 
+   I have handled the EINTR errors and  
+   SIGCHILD signal handler is used for child termination whcich uses waitpid.
+   The program can be more robust .
+   
+ ->SERVER
+  -MULTI-THREADING AND SERVER SERVICES :Implemented
+  I have implemented thread for both time and echo server which handles concurrent clients .
+  once the connection between client and server is done. A thread is created for the service.
+  Then thread detaches itself and handles the service. 
+  -LISTENING ON MULTIPLE SERVICES :Implemented.
+  I have used Poll  which await clients and accordingly accepts the connection for service 
+  being asked by the client by contionulsy reading sockets.
+  Thread safety: Not required
+ -ROBUSTNESS: Partial Implementation
+  When the the client  crashes or terminates  my server returns from the thread to the main program
+  and displays a message that client has been terminated. 
+  I have handled SIGPIPE Signal and  EPIPE,EINTR errors
+  Still program can be more robust. 
+ -TIME SERVER IMPLEMENTATION:Implemented
+  Time server is implementation using select function time server sleeps for 5 secs and returns in infinite loop
+  The socket is  monitered using select and it returns proper status message if client is terminated.  
+  -PROPER STATUS MESSAGES AT THE SERVER:Implemented
+  proper status messages are displayd if client is terminated,read error or write errors occur.
+  -SO_REUSEADDR SOCKET OPTION:it has been implemented.
+  -NONBLOCKING ACCEPT :not implemented . i was facing a problem while handling fcntl.
+  
+  PROGRAM DOCUMENTATION
+  ---------------------
+  Client.
+  program:tcpechotimecli.c
+  1.It mainly contains Main fuction from where you choose the service./*main */
+  2.the service fuction is called when a service is selected./*service function*/
+  3.first a pipe is created for communcation between child and parent.
+  4.fork creates the child and parent.
+  5.child   spwans the client service(echo or time) according to the service using exec.
+  6.parent prints satus messages from client through pipe.
+  7.Sigchild handler is used to avoid zoombies and notify parent client has terminated./*SIGCHILD handler*/
+  8.My parent exits the  inner loop  then the outer loop is repeated,
+   querying the user again for the (next) service s/he desires.
+  
+  program:echo_cli.c
+   xterm passes control to this program when echo is service selected all communication takes place in spwaned
+   window.
+  1.socket is created.
+  2.set the port
+  3.Then connection between server is established using connect.
+  5.select is used to monitor is socket set or is input set.
+  4.Write data to Server and display  echoed data back from server on the spwanned window.
+  5.Terminates client when server terminates.
+  6.handling errors due to EINTR and read error and write error.
+  
+   program:time_cli.c
+   xterm passes control to this program when time is service selected all communication takes place in spwaned
+   window.
+  1.socket is created.
+  2.set the port.
+  3.Then connection between server is established using connect.
+  4.read data from Server and display  read time on the spwanned  client window.
+  5.Terminates client when server terminates.
+  6.handling errors due to EINTR and read error and write error.
+   
+ SERVER
+ program:tcpechotimesrv.c
+  1. Creation of two sockets for echo and time.
+  2. setting two ports and Binding the two sockets to the port.
+  3. Listening Two sockets.
+  3. Poll to read  sockets set for client  service time or echo.
+  4. Once the service is selected .
+  5. The connection is created to Accept.
+  6. Thread for the service is created.
+  7. detach the thread.
+  8. if socket for time is set.
+  9. time is writen on socket which is send to client.
+  10.selects makes time service to sleep for 5 secs and 
+  11.select also moniters the read socket when server returns from thread when client terminates.
+  12.if socket echo is set.
+  13.data read from client is written back to the client from the server.
+  14.read is 0 server returns from thread when client terminates.
+  15.error due to EPIPE,EINTR,SIGPIPE,othe read write errors are handled. 
